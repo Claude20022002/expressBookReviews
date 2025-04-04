@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Test API Livres</title>
+    </head>
+    <body>
+        <h2>Test API Livres</h2>
+
+        <h3>Inscription</h3>
+        <input
+            type="text"
+            id="register-username"
+            placeholder="Nom d'utilisateur"
+        />
+        <input
+            type="password"
+            id="register-password"
+            placeholder="Mot de passe"
+        />
+        <button onclick="registerUser()">S'inscrire</button>
+        <p id="register-result"></p>
+
+        <h3>Connexion</h3>
+        <input
+            type="text"
+            id="login-username"
+            placeholder="Nom d'utilisateur"
+        />
+        <input type="password" id="login-password" placeholder="Mot de passe" />
+        <button onclick="loginUser()">Se connecter</button>
+        <p id="login-result"></p>
+
+        <h3>Liste des Livres</h3>
+        <button onclick="getBooks()">Afficher les livres</button>
+        <pre id="books-list"></pre>
+
+        <h3>Rechercher un livre</h3>
+        <input type="text" id="isbn" placeholder="ISBN" />
+        <button onclick="getBookByISBN()">Rechercher par ISBN</button>
+        <pre id="isbn-result"></pre>
+
+        <input type="text" id="author" placeholder="Auteur" />
+        <button onclick="getBooksByAuthor()">Rechercher par Auteur</button>
+        <pre id="author-result"></pre>
+
+        <input type="text" id="title" placeholder="Titre" />
+        <button onclick="getBooksByTitle()">Rechercher par Titre</button>
+        <pre id="title-result"></pre>
+
+        <h3>Ajouter une critique</h3>
+        <input type="text" id="review-isbn" placeholder="ISBN" />
+        <input type="text" id="review-text" placeholder="Votre critique" />
+        <button onclick="addReview()">Ajouter une critique</button>
+        <p id="review-result"></p>
+
+        <h3>Supprimer une critique</h3>
+        <input type="text" id="delete-review-isbn" placeholder="ISBN" />
+        <button onclick="removeReview()">Supprimer une critique</button>
+        <p id="delete-review-result"></p>
+
+        <script>
+            async function registerUser() {
+                const username =
+                    document.getElementById("register-username").value;
+                const password =
+                    document.getElementById("register-password").value;
+                const response = await fetch("http://localhost:5000/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
+                document.getElementById("register-result").innerText =
+                    await response.text();
+            }
+
+            async function loginUser() {
+                const username =
+                    document.getElementById("login-username").value;
+                const password =
+                    document.getElementById("login-password").value;
+                const response = await fetch(
+                    "http://localhost:5000/customer/login",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username, password }),
+                    }
+                );
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem("token", data.token);
+                }
+                document.getElementById("login-result").innerText =
+                    data.message;
+            }
+
+            async function getBooks() {
+                const response = await fetch("http://localhost:5000/");
+                document.getElementById("books-list").innerText =
+                    await response.text();
+            }
+
+            async function getBookByISBN() {
+                const isbn = document.getElementById("isbn").value;
+                const response = await fetch(
+                    `http://localhost:5000/isbn/${isbn}`
+                );
+                if (!response.ok) {
+                    document.getElementById("isbn-result").innerText =
+                        "Livre non trouvé.";
+                    return;
+                }
+                document.getElementById("isbn-result").innerText =
+                    await response.text();
+            }
+
+            async function addReview() {
+                const isbn = document.getElementById("review-isbn").value;
+                const review = document.getElementById("review-text").value;
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    document.getElementById("review-result").innerText =
+                        "Veuillez vous connecter.";
+                    return;
+                }
+
+                const response = await fetch(
+                    `http://localhost:5000/customer/auth/review/${isbn}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ review }),
+                    }
+                );
+
+                const result = await response.json();
+                document.getElementById("review-result").innerText =
+                    result.message || "Critique ajoutée.";
+            }
+
+            async function removeReview() {
+                const isbn =
+                    document.getElementById("delete-review-isbn").value;
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    document.getElementById("delete-review-result").innerText =
+                        "Veuillez vous connecter.";
+                    return;
+                }
+
+                const response = await fetch(
+                    `http://localhost:5000/customer/auth/review/${isbn}`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const result = await response.json();
+                document.getElementById("delete-review-result").innerText =
+                    result.message || "Critique supprimée.";
+            }
+        </script>
+    </body>
+</html>
